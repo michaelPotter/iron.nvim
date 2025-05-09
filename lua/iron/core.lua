@@ -21,13 +21,13 @@ local core = {}
 local new_repl = {}
 
 --- Create a new repl on the current window
--- Simple wrapper around the low level functions
--- Useful to avoid rewriting the get_def + create + save pattern
--- @param ft filetype
--- @param bufnr buffer to be used.
--- @param current_bufnr current buffer.
--- @tparam cleanup function Function to cleanup if call fails
--- @return saved snapshot of repl metadata
+--- Simple wrapper around the low level functions
+--- Useful to avoid rewriting the get_def + create + save pattern
+--- @param ft string
+--- @param bufnr number to be used.
+--- @param current_bufnr number buffer.
+--- @param cleanup function Function to cleanup if call fails
+--- @return iron.repl_meta repl_meta saved snapshot of repl metadata
 new_repl.create = function(ft, bufnr, current_bufnr, cleanup)
   local meta
   local success, repl = pcall(ll.get_repl_def, ft)
@@ -59,10 +59,10 @@ new_repl.create = function(ft, bufnr, current_bufnr, cleanup)
 end
 
 --- Create a new repl on a new repl window
--- Adds a layer on top of @{new_repl.create},
--- ensuring it is created on a new window
--- @param ft filetype
--- @return saved snapshot of repl metadata
+--- Adds a layer on top of @{new_repl.create},
+--- ensuring it is created on a new window
+--- @param ft string
+--- @return iron.repl_meta meta saved snapshot of repl metadata
 new_repl.create_on_new_window = function(ft)
   local current_bufnr = vim.api.nvim_get_current_buf()
   local bufnr = ll.new_buffer()
@@ -78,8 +78,8 @@ new_repl.create_on_new_window = function(ft)
 end
 
 --- Creates a repl in the current window
--- @param ft the filetype of the repl to be created
--- @treturn table metadata of the repl
+--- @param ft string the filetype of the repl to be created
+--- @return iron.repl_meta meta metadata of the repl
 core.repl_here = function(ft)
   local meta = ll.get(ft)
   if ll.repl_exists(meta) then
@@ -95,12 +95,12 @@ core.repl_here = function(ft)
 end
 
 --- Restarts the repl for the current buffer
--- First, check if the cursor is on top or a REPL
--- Then, start a new REPL of the same type and enter it into the window
--- Afterwards, wipe out the old REPL buffer
--- This is done without asking for confirmation, so user beware
--- @todo Split into "restart a repl" and "do X for current buffer's repl"
--- @return saved snapshotof repl metadata
+--- First, check if the cursor is on top or a REPL
+--- Then, start a new REPL of the same type and enter it into the window
+--- Afterwards, wipe out the old REPL buffer
+--- This is done without asking for confirmation, so user beware
+--- @todo Split into "restart a repl" and "do X for current buffer's repl"
+--- @return iron.repl_meta meta saved snapshot of repl metadata
 core.repl_restart = function()
   local bufnr_here = vim.fn.bufnr("%")
   local ft = ll.get_repl_ft_for_bufnr(bufnr_here)
@@ -152,10 +152,10 @@ core.repl_restart = function()
 end
 
 --- Sends a close request to the repl
--- if @{config.values.close_window_on_exit} is set to true,
--- all windows associated with that repl will be closed.
--- Otherwise, this will only finish the process.
--- @param ft filetype
+--- if @{config.values.close_window_on_exit} is set to true,
+--- all windows associated with that repl will be closed.
+--- Otherwise, this will only finish the process.
+--- @param ft string
 core.close_repl = function(ft)
   -- see the similar logic on core.send to see how the REPLs created by
   -- core.attach is handled.
@@ -174,7 +174,7 @@ core.close_repl = function(ft)
 end
 
 --- Hides the repl windows for a given filetype
--- @param ft filetype
+--- @param ft string
 core.hide_repl = function(ft)
   ft = ft or ll.get_buffer_ft(0)
   local meta = ll.get(ft)
@@ -188,9 +188,9 @@ core.hide_repl = function(ft)
 end
 
 --- Creates a repl for a given filetype
--- It should open a new repl on a new window for the filetype
--- supplied as argument.
--- @param ft filetype
+--- It should open a new repl on a new window for the filetype
+--- supplied as argument.
+--- @param ft string
 core.repl_for = function(ft)
   if require('iron.dap').is_dap_session_running() then
     -- If there's a dap session running, default to the dap repl. By
@@ -218,9 +218,9 @@ core.repl_for = function(ft)
 end
 
 --- Moves to the repl for given filetype
--- When it doesn't exist, a new repl is created
--- directly moving the focus to it.
--- @param ft filetype
+--- When it doesn't exist, a new repl is created
+--- directly moving the focus to it.
+--- @param ft string
 core.focus_on = function(ft)
   local meta = ll.get(ft)
   if ll.repl_exists(meta) then
@@ -236,11 +236,11 @@ core.focus_on = function(ft)
 end
 
 --- Sends data to the repl
--- This is a top-level wrapper over the low-level
--- functions. It should send data to the repl, ensuring
--- it exists.
--- @param ft filetype (will be inferred if not supplied)
--- @tparam string|table data data to be sent to the repl.
+--- This is a top-level wrapper over the low-level
+--- functions. It should send data to the repl, ensuring
+--- it exists.
+--- @param ft string|nil (will be inferred if not supplied)
+--- @param data string|string[] data to be sent to the repl.
 local send = function(ft, data)
   -- the buffer local variable `repl` is created by core.attach function to
   -- track non-default REPls.
@@ -274,6 +274,8 @@ end
 -- call to vim.fn.chansend(meta.job, dt) inside of ll.send_to_repl. The defer
 -- is here to ensure that sending of string.char(13) sends after the commands
 -- are finished sending to the ipython REPL
+--- @param ft string|nil
+--- @param data string|string[] data to be sent to the repl
 core.send = function(ft, data)
   if not is_windows() then
     send(ft, data)
@@ -299,8 +301,8 @@ core.send_file = function(ft)
 end
 
 --- Sends the line under the cursor to the repl
--- Builds upon @{core.send}, extracting
--- the data beforehand.
+--- Builds upon @{core.send}, extracting
+--- the data beforehand.
 core.send_line = function()
   local linenr = vim.api.nvim_win_get_cursor(0)[1] - 1
   local cur_line = vim.api.nvim_buf_get_lines(0, linenr, linenr + 1, 0)[1]
@@ -338,7 +340,7 @@ core.send_until_cursor = function()
 end
 
 --- Marks visual selection and returns data for usage
--- @treturn table Marked lines
+--- @return table lines Marked lines
 core.mark_visual = function()
   -- HACK Break out of visual mode
   vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
@@ -401,8 +403,8 @@ core.mark_visual = function()
 end
 
 --- Marks the supplied motion and returns the data for usage
--- @tparam string mtype motion type
--- @treturn table Marked lines
+--- @param mtype string motion type
+--- @return table lines Marked lines
 core.mark_motion = function(mtype)
   local b_line, b_col
   local e_line, e_col
@@ -741,10 +743,10 @@ local snake_to_kebab = function(name)
 end
 
 --- Sets up the configuration for iron to run.
--- Also, defines commands and keybindings for iron to run.
--- @param opts table of the configuration to be applied
--- @tparam table opts.config set of config values to override default on @{config}
--- @tparam table opts.keymaps set of keymaps to apply, based on @{named_maps}
+--- Also, defines commands and keybindings for iron to run.
+--- @param opts table of the configuration to be applied
+--- @param opts.config table set of config values to override default on @{config}
+--- @param opts.keymaps table set of keymaps to apply, based on @{named_maps}
 core.setup = function(opts)
   config.namespace = vim.api.nvim_create_namespace("iron")
   vim.api.nvim_create_augroup("iron", {})

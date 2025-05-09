@@ -6,12 +6,11 @@ local view = require("iron.view")
 local config
 
 --- Default configurations for iron.nvim
--- @table config.values
--- @tfield false|string highlight_last Either false or the name of a highlight group
--- @field scratch_repl When enabled, the repl buffer will be a scratch buffer
--- @field should_map_plug when enabled iron will provide its mappings as `<plug>(..)` as well,
--- for backwards compatibility
--- @field close_window_on_exit closes repl window on process exit
+--- @class iron.config
+--- @field highlight_last boolean|string Either false or the name of a highlight group
+--- @field scratch_repl boolean When enabled, the repl buffer will be a scratch buffer
+--- @field should_map_plug boolean When enabled iron will provide its mappings as `<plug>(..)` as well, for backwards compatibility
+--- @field close_window_on_exit boolean Closes repl window on process exit
 local values = {
   highlight_last = "IronLastSent",
   visibility = require("iron.visibility").toggle,
